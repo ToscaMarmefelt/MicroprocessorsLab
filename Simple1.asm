@@ -10,28 +10,18 @@ start
 	movlw   0xFF
 	movwf	TRISD, ACCESS	    ; Port D all inputs
 	movlw 	0x0
-	movwf	TRISC, ACCESS	    ; Port C all outputs
-	bra 	test
-loop	movlw	0xFF		    ; select how long the delay will be
-	movwf	0x20		    ; Make 0x20 counter
-	call	delay
-	movff 	0x06, PORTC
-	incf 	0x06, W, ACCESS
-test	movwf	0x06, ACCESS	    ; Test for end of loop condition
-	movlw	0xFF		    ; Set number of counts of main counter
-	cpfsgt 	0x06, ACCESS
-	bra 	loop		    ; Not yet finished goto start of loop again
-	goto 	0x0		    ; Re-run program from start
+	movwf	TRISE, ACCESS	    ; Port E all outputs
 	
-delay	movlw	0xFF		    ; Select number of counts for second delay
-	movwf	0x21		    ; Second counter address
-	call	delay2
-	decfsz	0x20		    ; Decrement value in counter until zero
-	bra	delay
-	return
+	movlw	0xFF
+	movwf	0x06		    ; Create counter at 0x06 
 	
-delay2	decfsz	0x21		    ; Decrement value in second counter until zero
-	bra	delay2		    
-	return
+clock	movlw	0x02		    ; Clock (pin 0) 0 ; OE (pin 1) 1		    
+	movwf	PORTD, ACCESS	    ; Output clock value 0 to Port D
+	movlw	0x03		    ; Clock (pin 0) 1 ; OE (pin 1) 1
+	movwf	PORTD, ACCESS	    ; Output clock value 1 to Port D (OE still 1) 
+	decfsz	0x06, F, ACCESS	    ; Count
+	bra	clock
+	
+	goto	start
 	
 	end

@@ -12,43 +12,29 @@ start
 	movlw 	0x00
 	movwf	TRISE, ACCESS	    ; Port E all outputs
 	
-oe	;movlw	0xF0
-	;movwf	PORTE, ACCESS	    ; Data to be stored on external memory 
-	
-	movlw	0xFF
+	movlw	0xFF		    ; Number of times go through loop
 	movwf	0x06		    ; Create counter at 0x06 
 	
 clock	movlw	0xF0
-	movwf	PORTE, ACCESS	    ; Data to Port E 
-	call	
-	;movlw	0x00		    ; CP (pin 0) 0 ; OE (pin 1) 0		    
-	;movwf	PORTD, ACCESS	    ; Output clock value 0 to Port D
-	;movlw	0x03		    ; CP (pin 0) 1 ; OE (pin 1) 1
-	;movwf	PORTD, ACCESS	    ; Output clock value 1 to Port D 
-	;movlw	0xF1
-	;movwf	PORTE, ACCESS	    ; Data to Port E
-	;movlw	0x01		    ; CP (pin 0) 1 ; OE (pin 1) 0
-	;movwf	PORTD, ACCESS
-	;movlw	0x02		    ; CP (pin 0) 0 ; OE (pin 1) 1
-	;movwf	PORTD, ACCESS
-	;movlw	0x03		    ; CP (pin 0) 1 ; OE (pin 1) 1
-	;movWf	PORTD, ACCESS	    
+	movwf	PORTE, ACCESS	    ; Data to PORT E   
+	call	CP_pulse	    ; Data stored internally on rising edge of clock pulse
+	call	OE_low		    ; Data outputted to Q0
 	
+	movlw	0x0F
+	movwf	PORTE, ACCESS	    ; Data to PORT E  
+	call	CP_pulse	    ; Data stored internally on rising edge of clock pulse
+	;call	OE_low		    ; Data outputted to Q0. NO NEED TO MAKE LOW AGAIN AS ALREADY LOW
 	
-	
-	decfsz	0x06, F, ACCESS	    ; Count
+	decfsz	0x06, F, ACCESS	    ; Repeat clock loop until counter is equal to zero
 	bra	clock
 	
 	goto	0x0
 	
-CP_high	movfw	PORTD, ACCESS		    
+CP_pulse movfw	PORTD, ACCESS		    
 	iorlw	0x01		    ; Original PORT D settings on <7:1> but pin 0 is set to 1
 	movwf	PORTD, ACCESS
-	return
-	
-CP_low	movfw	PORTD, ACCESS
-	xorlw	0x01		    ; Original PORT D settings on <7:1> but pin 0 is set to 0
-	movwf	PORTD, ACCESS
+	xorlw	0x01
+	movwf	PORTD, ACCESS	    ; Original PORT D settings on <7:1> but pin 0 is set to 0
 	return
 	
 OE_high	movfw	PORTD, ACCESS

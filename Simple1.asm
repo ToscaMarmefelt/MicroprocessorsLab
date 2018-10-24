@@ -23,26 +23,26 @@ clock	movlw	0xF0
 	movlw	0x0F
 	movwf	PORTE, ACCESS	    ; Data to PORT E  
 	call	CP_pulse	    ; Data stored internally on rising edge of clock pulse
-	;call	OE_low		    ; Data outputted to Q0. NO NEED TO MAKE LOW AGAIN AS ALREADY LOW
+	call	OE_low		    ; Data outputted to Q0. NO NEED TO MAKE LOW AGAIN AS ALREADY LOW
 	
 	decfsz	0x06, F, ACCESS	    ; Repeat clock loop until counter is equal to zero
 	bra	clock
 	
 	goto	0x0
 	
-CP_pulse movfw	PORTD, ACCESS		    
+CP_pulse movff	PORTD, W    ; Put value of PORT D in W	    
 	iorlw	0x01		    ; Original PORT D settings on <7:1> but pin 0 is set to 1
 	movwf	PORTD, ACCESS
 	xorlw	0x01
 	movwf	PORTD, ACCESS	    ; Original PORT D settings on <7:1> but pin 0 is set to 0
 	return
 	
-OE_high	movfw	PORTD, ACCESS
+OE_high	movff	PORTD, W
 	iorlw	0x02		    ; Original PORT D settngs on all pins but 1 kept, pin 1 is set to 1
 	movwf	PORTD, ACCESS
 	return
 	
-OE_low	movfw	PORTD, ACCESS
+OE_low	movff	PORTD, W
 	xorlw	0x02		    ; Original PORT D settngs on all pins but 1 kept, pin 1 is set to 0
 	movwf	PORTD, ACCESS
 	return

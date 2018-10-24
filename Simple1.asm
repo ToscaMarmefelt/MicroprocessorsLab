@@ -9,7 +9,7 @@
 start
 	movlw   0x00
 	movwf	TRISD, ACCESS	    ; Port D all outputs
-	movlw 	0x0
+	movlw 	0x00
 	movwf	TRISE, ACCESS	    ; Port E all outputs
 	
 oe	;movlw	0xF0
@@ -20,22 +20,45 @@ oe	;movlw	0xF0
 	
 clock	movlw	0xF0
 	movwf	PORTE, ACCESS	    ; Data to Port E 
+	call	
+	;movlw	0x00		    ; CP (pin 0) 0 ; OE (pin 1) 0		    
+	;movwf	PORTD, ACCESS	    ; Output clock value 0 to Port D
+	;movlw	0x03		    ; CP (pin 0) 1 ; OE (pin 1) 1
+	;movwf	PORTD, ACCESS	    ; Output clock value 1 to Port D 
+	;movlw	0xF1
+	;movwf	PORTE, ACCESS	    ; Data to Port E
+	;movlw	0x01		    ; CP (pin 0) 1 ; OE (pin 1) 0
+	;movwf	PORTD, ACCESS
+	;movlw	0x02		    ; CP (pin 0) 0 ; OE (pin 1) 1
+	;movwf	PORTD, ACCESS
+	;movlw	0x03		    ; CP (pin 0) 1 ; OE (pin 1) 1
+	;movWf	PORTD, ACCESS	    
 	
-	movlw	0x00		    ; CP (pin 0) 0 ; OE (pin 1) 0		    
-	movwf	PORTD, ACCESS	    ; Output clock value 0 to Port D
-	movlw	0x03		    ; CP (pin 0) 1 ; OE (pin 1) 1
-	movwf	PORTD, ACCESS	    ; Output clock value 1 to Port D 
-	movlw	0xF1
-	movwf	PORTE, ACCESS	    ; Data to Port E
-	movlw	0x01		    ; CP (pin 0) 1 ; OE (pin 1) 0
-	movwf	PORTD, ACCESS
-	movlw	0x02		    ; CP (pin 0) 0 ; OE (pin 1) 1
-	movwf	PORTD, ACCESS
-	movlw	0x03		    ; CP (pin 0) 1 ; OE (pin 1) 1
-	movWf	PORTD, ACCESS	    
+	
+	
 	decfsz	0x06, F, ACCESS	    ; Count
 	bra	clock
 	
 	goto	0x0
+	
+CP_high	movfw	PORTD, ACCESS		    
+	iorlw	0x01		    ; Original PORT D settings on <7:1> but pin 0 is set to 1
+	movwf	PORTD, ACCESS
+	return
+	
+CP_low	movfw	PORTD, ACCESS
+	xorlw	0x01		    ; Original PORT D settings on <7:1> but pin 0 is set to 0
+	movwf	PORTD, ACCESS
+	return
+	
+OE_high	movfw	PORTD, ACCESS
+	iorlw	0x02		    ; Original PORT D settngs on all pins but 1 kept, pin 1 is set to 1
+	movwf	PORTD, ACCESS
+	return
+	
+OE_low	movfw	PORTD, ACCESS
+	xorlw	0x02		    ; Original PORT D settngs on all pins but 1 kept, pin 1 is set to 0
+	movwf	PORTD, ACCESS
+	return
 	
 	end

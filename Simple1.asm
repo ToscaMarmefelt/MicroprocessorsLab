@@ -6,45 +6,64 @@
 	
 	org 0x100		    ; Main code starts here at address 0x100
 
-start
-	movlw   0x00
-	movwf	TRISD, ACCESS	    ; Port D all outputs
-	movlw 	0x00
-	movwf	TRISE, ACCESS	    ; Port E all outputs
+	; First 4 lines I have no clue what they are on about... 
+	banksel	PADCFG1		    ; PADCFG1 is not in Access Bank
+	bsf	PADCFG1, REPU, BANKED ; PORT E pull-ups on
+	movlb	0x00		    ; Set BSR back to Bank 0
+	setf	TRISE		    ; Tri-state PORT E
 	
-	movlw	0xFF		    ; Number of times go through loop
-	movwf	0x06		    ; Create counter at 0x06 
+start	movlw	0x00
+	movwf	TRISD, ACCESS	    ; PORT D (Address/Control bus) all outputs
 	
-clock	movlw	0xF0
-	movwf	PORTE, ACCESS	    ; Data to PORT E   
-	call	CP_pulse	    ; Data stored internally on rising edge of clock pulse
-	call	OE_low		    ; Data outputted to Q0
+	movlw	0xFF
+	movwf	TRISC, ACCESS	    ; PORT C (Memory 1 LEDs) all inputs
+	movwf	TRISH, ACCESS	    ; PORT H (Memory 2 LEDs) all outputs
 	
-	movlw	0x0F
-	movwf	PORTE, ACCESS	    ; Data to PORT E  
-	call	CP_pulse	    ; Data stored internally on rising edge of clock pulse
-	call	OE_low		    ; Data outputted to Q0. NO NEED TO MAKE LOW AGAIN AS ALREADY LOW
+write	movlw	0x22		    
+	movwf	PORTD, ACCESS	    ; Disable both memory outputs
+	movlw	0x00	
+	movwf	TRISE, ACCESS	    ; PORT E (Data bus) all outputs
 	
-	decfsz	0x06, F, ACCESS	    ; Repeat clock loop until counter is equal to zero
-	bra	clock
+	movlw	0x6F		    ; Set 1st data pattern: b'1001 1111'
+	movwf	PORTE, ACCESS	    ; Output data to PORT E
+	call	CP_1		    ; CP1 = 1 then 0. Rest of PORT D remain unchanged. 
+	movlw	0xDB		    ; Set 2nd data patterm: b'1101 1011'
+	movwf	PORTE, ACCESS	    ; Output data to PORT E
+	call	CP_2		    ; CP2 = 1 then 0. Rest of PORT D remain unchanged. 
 	
-	goto	0x0
+read	movlw	0xFF
+	movwf	TRISE, ACCESS	    ; PORT E (Data bus) all inputs
+
+	movlw	0x20		    ; 0010 0000
+	movwf	PORTD, ACCESS	    ; Memory 1 output enabled. OE1* = 0 and OE2* = 1. 
+	call	CP_1		    ; DO WE NEED THIS????   
+	movff	PORTE, PORTC	    ; Read PORT E to PORT C (LEDs)
+
+	movlw	0x02		    ; 0000 0010
+	movwf	PORTD, ACCESS	    ; Memory 2 output enabled. OE1* = 1 and OE2* = 0.
+	call	CP_2		    ; DO WE NEED THIS????   
+	movff	PORTE, PORTH	    ; Read PORT D to PORT H (LEDs)
+
+	movlw	0x22
+	movwf	PORTD, ACCESS	    ; Disable both memory outputs
 	
-CP_pulse movff	PORTD, W    ; Put value of PORT D in W	    
-	iorlw	0x01		    ; Original PORT D settings on <7:1> but pin 0 is set to 1
-	movwf	PORTD, ACCESS
-	xorlw	0x01
-	movwf	PORTD, ACCESS	    ; Original PORT D settings on <7:1> but pin 0 is set to 0
+delay		
+	
+	
+CP_1	movff	PORTD, W	    ; Put value of PORT D in W	    
+	iorlw	0x01		    
+	movwf	PORTD, ACCESS	    ; CP1 = 1. Original PORT D settings on <7:1>.
+	xorlw	0x01		    
+	movwf	PORTD, ACCESS	    ; CP1 = 0. Original PORT D settings on <7:1>.
 	return
 	
-OE_high	movff	PORTD, W
-	iorlw	0x02		    ; Original PORT D settngs on all pins but 1 kept, pin 1 is set to 1
-	movwf	PORTD, ACCESS
+CP_2	movff	PORTD, W	    ; Put value of PORT D in W	    
+	iorlw	0x10		    
+	movwf	PORTD, ACCESS	    ; CP2 = 1. Original PORT D settings on all other pins.
+	xorlw	0x10		    
+	movwf	PORTD, ACCESS	    ; CP2 = 0. Original PORT D settings on all other pins. 
 	return
-	
-OE_low	movff	PORTD, W
-	xorlw	0x02		    ; Original PORT D settngs on all pins but 1 kept, pin 1 is set to 0
-	movwf	PORTD, ACCESS
-	return
+
+	goto	0x00
 	
 	end

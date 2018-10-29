@@ -17,18 +17,25 @@ temp0	res 1	    ; 1 byte for temporary use
 res0	res 1	    ; 1 byte for lowest 8 bits of result
 res1	res 1	    ; 1 byte for mid 8 bits of result
 res2	res 1	    ; 1 byte for upper  8 bits of result
+	
+	; ******* Reserve data space for 16-bit by 16-bit multiplication
+sixteen2_l  res 1   ; Assign values for second 16-bit number to multiply by
+sixteen2_u  res 1
+prod0	res 1	    ; In total product (prod0:3) will require 4 bytes (32 bits) 
+prod1	res 1
+prod2	res 1
+prod3	res 1
 
-
-tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
-myArray res 0x80    ; reserve 128 bytes for message data
+;tables	udata	0x400    ; reserve data anywhere in RAM (here at 0x400)
+;myArray res 0x80    ; reserve 128 bytes for message data
 
 rst	code	0    ; reset vector
 	goto	setup
 
 pdata	code    ; a section of programme memory for storing data
 	; ******* myTable, data in programme memory, and its length *****
-myTable data	    "Hello World!\n"	; message, plus carriage return
-	constant    myTable_l=.13	; length of data
+;myTable data	    "Hello World!\n"	; message, plus carriage return
+;	constant    myTable_l=.13	; length of data
 	
 main	code
 	; ******* Programme FLASH read Setup Code ***********************
@@ -38,10 +45,10 @@ setup	bcf	EECON1, CFGS	; point to Flash program memory
 	call	LCD_Setup	; setup LCD
 	call	ADC_Setup	; setup ADC
 	;goto	start
-	goto	test
+	goto	test816
 	
 	; ******* Code to check 8x16-bit multiplication
-test	movlw	0x1F		
+test816	movlw	0x1F		
 	movwf	eight		; Set value for 8-bit number
 	movlw	0xFF
 	movwf	sixteen_l	; Value for lower byte of 16-bit number
@@ -49,9 +56,23 @@ test	movlw	0x1F
 	movwf	sixteen_u	; Value for upper byte of 16-bit number
 	
 	call	mul8by16	; Multiply 8-bit number by 16-bit number
-				; Result stored in res0:2
+				; Result stored in res2:0
 	
-	end		
+	; ******* Code to check 16x16-bit numtiplication
+test1616
+	movlw	0xF8		; First 16-bit number: 0xF81D
+	movwf	sixteen_u	; upper byte
+	movlw	0x1D
+	movwf	sixteen_l	; lower byte
+	movlw	0xBB		; Second 16-bit number: 0xBB92
+	movwf	sixteen2_u	; upper byte
+	movlw	0x92
+	movwf	sixteen2_l	; lower byte
+	
+	
+	call	mul16by16	; Multiply 16-bit number by 16-bit number
+				; Result stored in prod3:0
+		
 				
 	; 8-bit by 16-bit multiplication
 mul8by16    
@@ -70,9 +91,28 @@ mul8by16
 	movwf	res2
 	movf	PRODH, W	; Move upper byte of second product to W	
 	addwfc	res2, F		; Add W, res2 (=empty) and carry bit. Place in res2. 
-	
 	return
 	
+	; 16-bit by 16-bit multiplication
+mul16by16   
+	movff	sixteen2_l, eight  
+	call	mul8by16	; Multiply lower byte of second number by first number
+	movff	res0, prod0	; Final output of lower byte
+	movff	res1, prod1	; Temporary storage
+	movff	res2, prod2	; Temporary storage
+	
+	movff	sixteen2_u, eight
+	call	mul8by16	; Multiply upper byte of second number by first number
+	
+	movf	res0, W		
+	addwf	prod1, F	; Add lower byte of second multiplication to second byte of first multiplication. Might give carry!
+	movf	res1, W
+	addwfc	prod2, F	; Add upper byte of first multiplication to second byte of second multiplication and carry. Might give carry!
+	movlw	0x00
+	movwf	prod3		; Make sure prod3 is empty
+	movf	res2, W
+	addwfc	prod3, F
+	return 
 	
 	
 	
@@ -112,4 +152,4 @@ mul8by16
 	;bra delay
 	;return
 
-	;end
+	end
